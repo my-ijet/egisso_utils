@@ -192,7 +192,7 @@ def to_number(input_str:str=''):
 
 def filter_row(row_index, row):
     #TODO: Сделать более честную фильтрацию
-    result = True if row[0] == '' else False
+    result = True if row[3] == '' else False
     return result
 
 def save_egisso():
