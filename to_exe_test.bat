@@ -1,0 +1,1 @@
+pyinstaller -F --add-data "./data;./data" --icon=data\egisso.ico .\svod.py

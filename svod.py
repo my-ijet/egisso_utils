@@ -7,17 +7,23 @@ import PySide2.QtWidgets as QT
 from PySide2 import QtCore, QtGui
 
 import pyexcel
+import pyexcel_xls
+import pyexcel_xlsx
 
 # import count_facts.count_facts
 
 class Egisso():
     def __init__(self):
         self.shablon = pyexcel.get_sheet(
-            file_name=str(Path('data\\shablon_3.xlsx')))
+            file_name=str(Path('./data/shablon_3.xlsx')))
             
         self.itog_sheet = pyexcel.Sheet(name='Формат')
         self.itog_scolls_sheet = pyexcel.Sheet(name='Формат')
         self.itog_sady_sheet = pyexcel.Sheet(name='Формат')
+
+        self.total_count = 0
+        self.total_scolls_count = 0
+        self.total_sady_count = 0
 
         self.path_to_excels = ''
 
@@ -48,7 +54,7 @@ class Egisso():
                 child.widget().deleteLater()
 
         # построение нового списка
-        string_top = 'Всего ' + str(self.num_of_strokes) + ' строк' + ' в '+ str(len(self.list_of_file_names)) + ' файлах:'
+        string_top = 'Всего ' + str(self.num_of_strokes) + ' строк' + ' в '+ str(self.total_count) + ' файлах:'
         self.formLayout.addWidget(QT.QLabel(string_top))
         for name in self.list_of_file_names:
             wdgt = QT.QLabel(name)
@@ -58,6 +64,10 @@ class Egisso():
         self.itog_sheet = pyexcel.Sheet(name='Формат')
         self.itog_scolls_sheet = pyexcel.Sheet(name='Формат')
         self.itog_sady_sheet = pyexcel.Sheet(name='Формат')
+
+        self.total_count = 0
+        self.total_scolls_count = 0
+        self.total_sady_count = 0
 
         self.path_to_excels = ''
 
@@ -73,16 +83,20 @@ class Egisso():
         for f in Path(self.path_to_excels).rglob('*.xls*'):
             self.list_of_file_names.append(f.name)
             new_sheet = pyexcel.Sheet()
-            try: new_sheet = pyexcel.get_sheet(file_name=str(f), start_row=6)
-            except:
-                print(f)
+            print(f)
+            new_sheet = pyexcel.get_sheet(file_name=str(f), start_row=6)
+            # except:
+            #     print(f)
             del new_sheet.row[filter_row]
             self.itog_sheet.row += new_sheet
 
-            if 'СОШ' in f.stem:
+            self.total_count += 1
+            if 'СОШ' in f.stem.upper():
                 self.itog_scolls_sheet.row += new_sheet
-            if 'САД' in f.stem:
+                self.total_scolls_count += 1
+            if 'САД' in f.stem.upper():
                 self.itog_sady_sheet.row += new_sheet
+                self.total_sady_count += 1
 
         for i, row in enumerate(self.itog_sheet.rows()):
             self.num_of_strokes += 1
@@ -170,11 +184,14 @@ name_for_compose_uuid = {
 
 def to_number(input_str:str=''):
     out = 0
+    if type(input_str) == str:
+        input_str = input_str.replace(',','.')
     if input_str != '':
         out = float(input_str)
     return out
 
 def filter_row(row_index, row):
+    #TODO: Сделать более честную фильтрацию
     result = True if row[0] == '' else False
     return result
 
@@ -238,7 +255,7 @@ def report():
     report_sheet = pyexcel.Sheet(name='report')
     report_sheet.row += ['Мера', 'Количество', 'Сумма']
 
-    report_sheet.row += ['ШКОЛЫ']
+    report_sheet.row += ['ШКОЛЫ', egisso.total_scolls_count]
     meras_raw_dict = report_mera_uuid(egisso.itog_scolls_sheet)
 
     meras_dict_compose = report_mera_name_of_uuid(meras_raw_dict)
@@ -248,7 +265,7 @@ def report():
                             meras_dict_compose[mera_uuid][0],
                             meras_dict_compose[mera_uuid][1]]
 
-    report_sheet.row += ['Сады']
+    report_sheet.row += ['Сады', egisso.total_sady_count]
     meras_raw_dict = report_mera_uuid(egisso.itog_sady_sheet)
 
     meras_dict_compose = report_mera_name_of_uuid(meras_raw_dict)
@@ -258,7 +275,7 @@ def report():
                             meras_dict_compose[mera_uuid][0],
                             meras_dict_compose[mera_uuid][1]]
 
-    report_sheet.row += ['ВСЕГО']
+    report_sheet.row += ['ВСЕГО', egisso.total_count]
     meras_raw_dict = report_mera_uuid(egisso.itog_sheet)
 
     meras_dict_compose = report_mera_name_of_uuid(meras_raw_dict)
@@ -270,7 +287,7 @@ def report():
 
 
     formated_time = datetime.now().strftime('%Y%m%dT%H%M%S')
-    report_sheet.save_as('Отчёт_' + formated_time + '.csv')
+    report_sheet.save_as('Отчёт_' + formated_time + '.xlsx')
 
 if __name__ == "__main__":
     container_layout = QT.QVBoxLayout()
